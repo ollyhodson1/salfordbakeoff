@@ -138,6 +138,9 @@ input[type=range] { width:100%; accent-color:var(--plum); }
 
 .table-wrap { overflow:auto; border-radius:var(--radius); border:1px solid var(--line); background:var(--paper); box-shadow:0 10px 28px rgba(72,21,50,.05); }
 table { border-collapse:collapse; width:100%; min-width:850px; }
+.leaderboard-table { min-width:0; }
+.leaderboard-table.with-breakdown { min-width:850px; }
+.leaderboard-table .rank { width:80px; }
 th { text-align:left; background:#f4ecea; color:#5d5056; font-size:12px; text-transform:uppercase; letter-spacing:.06em; }
 th,td { padding:14px 15px; border-bottom:1px solid #eee4e2; }
 td { font-size:14px; }

@@ -56,3 +56,29 @@ The signed-in baker will see their own bake as locked. Other people can vote. Ea
 The visible website prevents voting for your own bake, but the Apps Script checks this again before writing to the Sheet. It also rejects duplicate votes from the same signed-in name for the same Bake ID.
 
 This is deliberately a lightweight office sign-in rather than secure authentication: people select their own name from a dropdown, so it relies on colleagues choosing themselves honestly.
+
+## Leaderboard display controls
+
+The website reads `Page - Leaderboard!A6:C12` through the Apps Script bootstrap response (`leaderboardSettings`). The leaderboard title and intro come from the same settings block.
+
+- `show_category_breakdown`: show the five category averages.
+- `show_vote_count`: show the number of votes.
+- `show_only_closed_bakes`: show only bakes whose voting has closed.
+- `show_total_score`: show the overall score out of 50.
+- `show_bake_name`: show the bake name.
+
+Set the optional display controls to `No` for a leaderboard showing only ranks and baker names. The home-page standings also respect bake-name, total-score and closed-voting controls. Scores still determine ranking when hidden. Missing display controls default to hidden.
+
+After changing a Sheet setting, reload the website to fetch the latest values.
+
+### Update an existing Apps Script deployment
+
+Updating `google-apps-script/Code.gs` on GitHub does **not** update the live Google Apps Script web app.
+
+1. In the linked Google Sheet, open **Extensions → Apps Script**.
+2. Replace the existing `Code.gs` with the updated file from this repository and save.
+3. Choose **Deploy → Manage deployments**.
+4. Edit the existing web-app deployment, select **New version**, and deploy it. Keep the existing access settings.
+5. Keep the same `/exec` URL in `docs/config.js`, then reload the website.
+
+Until the backend is redeployed, the site safely shows only ranks and names because it has not received any display controls.

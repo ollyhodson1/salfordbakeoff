@@ -43,8 +43,9 @@ function buildBootstrap_() {
   const bakes = bakes_(ss);
   const voting = voting_(ss);
   const leaderboard = leaderboard_(ss);
+  const leaderboardSettings = keyValueMap_(ss.getSheetByName(SHEETS.leaderboard).getRange('A6:C12').getDisplayValues(), 0, 2);
 
-  return { participants, home, rules, contestants, bakes, voting, leaderboard };
+  return { participants, home, rules, contestants, bakes, voting, leaderboard, leaderboardSettings };
 }
 
 function contestants_(ss) {

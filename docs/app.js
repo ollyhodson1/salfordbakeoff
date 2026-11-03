@@ -39,6 +39,15 @@ const demo = {
       { key:'overall_enjoyment', label:'Overall Enjoyment', max:10, help:'Taking everything into account, how much did you enjoy it?' }
     ]
   },
+  leaderboardSettings: {
+    leaderboard_title: 'Star Baker Leaderboard',
+    leaderboard_intro: 'The current standings based on valid votes.',
+    show_category_breakdown: 'No',
+    show_vote_count: 'No',
+    show_only_closed_bakes: 'No',
+    show_total_score: 'No',
+    show_bake_name: 'No'
+  },
   leaderboard: [
     { rank:1, bakeId:'B009', baker:'Sample Star Baker', bake:'Chocolate Cake', votes:8, taste:9.1, appearance:8.6, bakeQuality:9.0, creativity:8.4, overallEnjoyment:9.2, total:44.3, status:'Voting closed' }
   ]
@@ -85,6 +94,18 @@ const yn = value => String(value || '').toLowerCase() === 'yes' || value === tru
 const number = value => Number(value || 0);
 const fmt = value => value === '' || value == null ? '—' : Number(value).toFixed(1);
 
+function leaderboardRows(data) {
+  const onlyClosed = yn(data.leaderboardSettings?.show_only_closed_bakes);
+  return [...(data.leaderboard || [])]
+    .filter(row => number(row.votes) > 0)
+    .filter(row => {
+      if (!onlyClosed) return true;
+      const bake = (data.bakes || []).find(b => b.id === row.bakeId);
+      return bake ? !bake.votingOpen : String(row.status || '').toLowerCase() === 'voting closed';
+    })
+    .sort((a,b) => number(b.total) - number(a.total));
+}
+
 function SignIn({ data, onSignIn }) {
   const [name,setName] = useState('');
   return html`
@@ -124,7 +145,10 @@ function Header({ user, page, setPage, signOut }) {
 function Home({ data, setPage }) {
   const h = data.home || {};
   const topN = number(h.show_top_n) || 3;
-  const leaders = [...(data.leaderboard||[])].filter(x=>number(x.votes)>0).sort((a,b)=>number(b.total)-number(a.total)).slice(0,topN);
+  const leaders = leaderboardRows(data).slice(0,topN);
+  const leaderboardSettings = data.leaderboardSettings || {};
+  const showBake = yn(leaderboardSettings.show_bake_name);
+  const showTotal = yn(leaderboardSettings.show_total_score);
   const openBakes = (data.bakes||[]).filter(b=>b.votingOpen);
   return html`<main className="page">
     <section className="hero">
@@ -146,7 +170,7 @@ function Home({ data, setPage }) {
     ${h.announcement ? html`<div className="notice">${h.announcement}</div>` : null}
 
     <div className="section-head"><div><h2>Star Baker standings</h2><p>The current leaders based on valid votes.</p></div><button className="text-link" onClick=${()=>setPage('leaderboard')}>Full leaderboard →</button></div>
-    ${leaders.length ? html`<div className="grid-3">${leaders.map((x,i)=>html`<div className="card stat-card"><span>#${i+1}</span><strong>${x.baker}</strong><span>${x.bake} · ${fmt(x.total)}/50</span></div>`)}</div>` : html`<div className="empty-state"><strong>No scores yet</strong></div>`}
+    ${leaders.length ? html`<div className="grid-3">${leaders.map((x,i)=>html`<div className="card stat-card"><span>#${i+1}</span><strong>${x.baker}</strong>${showBake || showTotal ? html`<span>${[showBake ? x.bake : '', showTotal ? `${fmt(x.total)}/50` : ''].filter(Boolean).join(' · ')}</span>` : null}</div>`)}</div>` : html`<div className="empty-state"><strong>No scores yet</strong></div>`}
 
     <div className="section-head"><div><h2>Voting now</h2><p>These bakes currently have voting open.</p></div><button className="text-link" onClick=${()=>setPage('voting')}>Go to voting →</button></div>
     ${openBakes.length ? html`<div className="grid-3">${openBakes.slice(0,3).map(b=>html`<div className="card stat-card"><span>${b.baker}</span><strong>${b.name}</strong><span>${b.contestant || 'Great Salford Bake Off'}</span></div>`)}</div>` : html`<div className="empty-state"><strong>Nothing to judge just yet</strong></div>`}
@@ -228,9 +252,30 @@ function Voting({ data, user, onRefresh }) {
 }
 
 function Leaderboard({ data }) {
-  const rows=[...(data.leaderboard||[])].filter(x=>number(x.votes)>0).sort((a,b)=>number(b.total)-number(a.total));
-  return html`<main className="page"><header className="page-heading"><div className="eyebrow">The race for Star Baker</div><h1>Leaderboard</h1><p>Scores are averages from all valid votes. Each category is marked out of 10 for a maximum overall score of 50.</p></header>
-  ${rows.length ? html`<div className="table-wrap"><table><thead><tr><th>Rank</th><th>Baker</th><th>Bake</th><th>Votes</th><th>Taste</th><th>Appearance</th><th>Bake Quality</th><th>Creativity</th><th>Overall</th><th>Total</th></tr></thead><tbody>${rows.map((r,i)=>html`<tr><td className="rank">#${i+1}</td><td><strong>${r.baker}</strong></td><td>${r.bake}</td><td>${r.votes}</td><td>${fmt(r.taste)}</td><td>${fmt(r.appearance)}</td><td>${fmt(r.bakeQuality)}</td><td>${fmt(r.creativity)}</td><td>${fmt(r.overallEnjoyment)}</td><td className="score-total">${fmt(r.total)}/50</td></tr>`)}</tbody></table></div>` : html`<div className="empty-state"><strong>No leaderboard yet</strong>The first results will appear automatically once voting begins.</div>`}
+  const settings = data.leaderboardSettings || {};
+  const rows = leaderboardRows(data);
+  const showBake = yn(settings.show_bake_name);
+  const showVotes = yn(settings.show_vote_count);
+  const showBreakdown = yn(settings.show_category_breakdown);
+  const showTotal = yn(settings.show_total_score);
+  const intro = settings.leaderboard_intro ?? 'The current standings based on valid votes.';
+  return html`<main className="page"><header className="page-heading"><div className="eyebrow">The race for Star Baker</div><h1>${settings.leaderboard_title || 'Leaderboard'}</h1>${intro ? html`<p>${intro}</p>` : null}</header>
+  ${rows.length ? html`<div className="table-wrap"><table className=${showBreakdown ? 'leaderboard-table with-breakdown' : 'leaderboard-table'}>
+    <thead><tr>
+      <th scope="col">Rank</th><th scope="col">Baker</th>
+      ${showBake ? html`<th scope="col">Bake</th>` : null}
+      ${showVotes ? html`<th scope="col">Votes</th>` : null}
+      ${showBreakdown ? html`<th scope="col">Taste</th><th scope="col">Appearance</th><th scope="col">Bake Quality</th><th scope="col">Creativity</th><th scope="col">Overall</th>` : null}
+      ${showTotal ? html`<th scope="col">Total</th>` : null}
+    </tr></thead>
+    <tbody>${rows.map((r,i)=>html`<tr key=${r.bakeId}>
+      <td className="rank">#${i+1}</td><td><strong>${r.baker}</strong></td>
+      ${showBake ? html`<td>${r.bake}</td>` : null}
+      ${showVotes ? html`<td>${r.votes}</td>` : null}
+      ${showBreakdown ? html`<td>${fmt(r.taste)}</td><td>${fmt(r.appearance)}</td><td>${fmt(r.bakeQuality)}</td><td>${fmt(r.creativity)}</td><td>${fmt(r.overallEnjoyment)}</td>` : null}
+      ${showTotal ? html`<td className="score-total">${fmt(r.total)}/50</td>` : null}
+    </tr>`)}</tbody>
+  </table></div>` : html`<div className="empty-state"><strong>No leaderboard yet</strong>The first results will appear automatically once voting begins.</div>`}
   </main>`;
 }
 
